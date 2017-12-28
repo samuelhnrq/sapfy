@@ -83,7 +83,6 @@ def song_event_handler(*args, **_):
                     # Probaly something like adding the song
                     # Not the initial succesive 2-3 events of loading
                     return
-            print(opt.strict_length)
             CURR_SONG.flush(opt.strict_length)
         if CURR_SONG is None or CURR_SONG.info.title != song_info.title:
             l.info('Started recording %s by %s',
