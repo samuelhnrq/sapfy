@@ -6,6 +6,7 @@ from threading import Thread, Event, Lock
 import jack
 from .music_data import build_track_data, SongInfo, Song, map_dubs_type
 from .jack_client import J_CLIENT, MUSIC_L, MUSIC_R
+from .flags import OPTIONS as opt
 
 CURR_SONG: Song = None
 CURR_SONG_LOCK = Lock()
@@ -41,7 +42,7 @@ def got_xrun(usecs):
 def finish_jack():
     with CURR_SONG_LOCK:
         if CURR_SONG is not None:
-            CURR_SONG.flush()
+            CURR_SONG.flush(opt.strict_length)
 
 
 def song_event_handler(*args, **_):
@@ -66,7 +67,9 @@ def song_event_handler(*args, **_):
             if CURR_SONG is not None:
                 CURR_SONG.flush()
                 CURR_SONG = None
-                l.info('Advertisement, ignoring.')
+                # TODO maybe emit a skip song event back to dbus since spotify
+                # now supports skipping some ads
+            l.info('Advertisement, ignoring.')
             return
         # if there were a song
         if CURR_SONG is not None:
@@ -80,9 +83,11 @@ def song_event_handler(*args, **_):
                     # Probaly something like adding the song
                     # Not the initial succesive 2-3 events of loading
                     return
-            CURR_SONG.flush()
+            print(opt.strict_length)
+            CURR_SONG.flush(opt.strict_length)
         if CURR_SONG is None or CURR_SONG.info.title != song_info.title:
             l.info('Started recording %s by %s',
                    song_info.title, song_info.artist[0])
-        song = Song(song_info)
+        song = Song(song_info, out_format=opt.format, file_path=opt.output,
+                    target_folder=opt.target)
         CURR_SONG = song

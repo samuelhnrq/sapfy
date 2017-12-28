@@ -2,6 +2,8 @@
 """Module intended to handle song metadata operations"""
 from collections import namedtuple
 import logging as l
+import os.path as path
+import os
 import numpy as np
 import soundfile as sf
 import dbus
@@ -19,39 +21,53 @@ SongInfo = namedtuple("SongInfo", [
 ])
 
 
+def in_range(x, y, diff):
+    return x < y + diff and x > y - diff
+
+
 class Song:
-    def __init__(self, info):
+    """The class intended to represent the file and metadata of a song.
+    Be careful, instanciating this class immediatly creates (and overwrites)
+    the recipient file for the song"""
+
+    def __init__(self, info, out_format='FLAC', target_folder='./',
+                 file_path='{albumArtist[0]}/{album}/{trackNumber} {title}'):
         self.info: SongInfo = build_track_data(info) \
             if not isinstance(info, SongInfo) else info
         # TODO Custom output file location
-        if self.info.title == 'dummy' and self.info.artist == 'dummy':
-            return
-        self.file_name = f'./{self.info.title} by {self.info.artist[0]}.flac'
+        self.file_name = path.normpath(file_path.format(**self.info._asdict()))
+        self.file_name += f'.{out_format.lower()}'
+        self.file_name = path.join(target_folder, self.file_name)
+        folder = path.dirname(self.file_name)
+        if not path.exists(folder):
+            os.makedirs(folder, mode=0o755)
         self.sound_file = sf.SoundFile(
             self.file_name,
             mode='w',
             samplerate=J_CLIENT.samplerate,
             channels=2,
-            format='FLAC')
+            format=out_format)
 
     @property
     def duration(self):
         return len(self.sound_file) / self.sound_file.samplerate
 
-    def flush(self):
+    def flush(self, max_diff=2**64):
         if self.sound_file.closed:
-            print("LOL")
             return
         self.sound_file.close()
-        if self.duration > 10:
+        if self.duration > 3:
             l.info("Flushed %s to disk successfully", self.file_name)
         else:
             return
-        if self.duration < self.info.length - 2 or \
-                self.duration > self.info.length + 2:
-            l.warning('Actual song length was %d when metada said it would be'
-                      ' %d.', self.duration, self.info.length)
+        if not in_range(self.duration, self.info.length, 2):
+            l.warning('Actual song length was %dsecs when metadata said it'
+                      ' would be %dsecs.', self.duration, self.info.length)
             l.warning('Was the song started half-way or interrupted?')
+        if not in_range(self.duration, self.info.length, max_diff):
+            l.info('The recording differs more than %dsecs from the metadata'
+                   ' lenght. Erasing it, as requested.', max_diff)
+            os.remove(self.file_name)
 
     def write_buffer(self, l_channel, r_channel):
         self.sound_file.write(

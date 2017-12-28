@@ -11,7 +11,7 @@ gi.require_version("GLib", "2.0")
 from gi.repository import GLib as gobject
 from . import song_event_handler, finish_jack
 from .jack_client import J_CLIENT, MUSIC_L, MUSIC_R
-from .flags import PARSER
+from .flags import OPTIONS as options
 
 
 LOOP = gobject.MainLoop()
@@ -27,7 +27,7 @@ def ending(*_):
     l.shutdown()
 
 
-def setup_logging(options):
+def setup_logging():
     root_logger = l.getLogger()
     root_logger.setLevel(options.v)
 
@@ -48,9 +48,7 @@ def setup_logging(options):
 
 
 def main():
-    options = PARSER.parse_args()
-    setup_logging(options)
-
+    setup_logging()
     s_bus = dbus.SessionBus()
     s_bus.add_signal_receiver(
         song_event_handler,
