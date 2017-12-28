@@ -31,14 +31,17 @@ def setup_logging(options):
     root_logger = l.getLogger()
     root_logger.setLevel(options.v)
 
-    log_formatter = l.Formatter(
+    file_formatter = l.Formatter(
         "%(asctime)s [%(threadName)-10.10s] [%(levelname)-5.5s]: %(message)s")
 
     file_handler = l.FileHandler('sapfy.log')
-    file_handler.setFormatter(log_formatter)
+    file_handler.setFormatter(file_formatter)
     root_logger.addHandler(file_handler)
     root_logger.info('{0} STARTING UP! {0}'.format('-' * 12))
 
+    log_formatter = l.Formatter(
+        "%(asctime)s [%(levelname)-5.5s]: %(message)s",
+        datefmt='%H:%M:%S')
     console_handler = l.StreamHandler()
     console_handler.setFormatter(log_formatter)
     root_logger.addHandler(console_handler)

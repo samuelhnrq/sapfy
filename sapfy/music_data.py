@@ -1,10 +1,10 @@
 # pylint: disable=C0111
 """Module intended to handle song metadata operations"""
 from collections import namedtuple
+import logging as l
 import numpy as np
 import soundfile as sf
 import dbus
-import logging as l
 from .jack_client import J_CLIENT
 
 SongInfo = namedtuple("SongInfo", [
@@ -34,10 +34,24 @@ class Song:
             channels=2,
             format='FLAC')
 
+    @property
+    def duration(self):
+        return len(self.sound_file) / self.sound_file.samplerate
+
     def flush(self):
+        if self.sound_file.closed:
+            print("LOL")
+            return
         self.sound_file.close()
-        if len(self.sound_file) > 5000:
-            l.info("Finished flushing %s to disk", self.file_name)
+        if self.duration > 10:
+            l.info("Flushed %s to disk successfully", self.file_name)
+        else:
+            return
+        if self.duration < self.info.length - 2 or \
+                self.duration > self.info.length + 2:
+            l.warning('Actual song length was %d when metada said it would be'
+                      ' %d.', self.duration, self.info.length)
+            l.warning('Was the song started half-way or interrupted?')
 
     def write_buffer(self, l_channel, r_channel):
         self.sound_file.write(
@@ -65,6 +79,6 @@ def build_track_data(dbus_dict: dict) -> SongInfo:
                 for (k, v) in dbus_dict.items() if 'xesam:' in k}
     filtered['autoRating'] = 5 * filtered.get('autoRating', 0)
     filtered.pop('url', '')
-    filtered['length'] = (dbus_dict.get('mpris:length', 0) / 1000000) / 60
+    filtered['length'] = dbus_dict.get('mpris:length', 0) / 1000000
     final = SongInfo(*filtered.values())
     return final

@@ -21,6 +21,7 @@ def process(frames):
     l_buffer = MUSIC_L.get_array()
     r_buffer = MUSIC_R.get_array()
     if not PLAYING.is_set() or CURR_SONG is None:
+        # Keep the frames going, just ignore them if paused or something
         return
     if not CURR_SONG_LOCK.acquire(blocking=False):
         return
@@ -31,10 +32,10 @@ def process(frames):
 @J_CLIENT.set_xrun_callback
 def got_xrun(usecs):
     if usecs < 0.0001:
-        l.debug("Minor XRun, %lfusecs", usecs)
+        l.debug('Minor XRun, %lfusecs', usecs)
         return
-    l.warning("Jack just had a XRun, and lost %.4fusecs, is the CPU under "
-              "heavy load?", usecs)
+    l.warning('Jack just had a XRun, and lost %.4fusecs, is the CPU under '
+              'heavy load?', usecs)
 
 
 def finish_jack():
@@ -43,19 +44,20 @@ def finish_jack():
             CURR_SONG.flush()
 
 
-def song_event_handler(*args, **kwargs: dict):
+def song_event_handler(*args, **_):
     if len(args) <= 0 or args[0] != 'org.mpris.MediaPlayer2.Player':
         return
     status = args[1].get('PlaybackStatus', '')
-    dicta: dict = args[1].get("Metadata", dict())
+    dicta: dict = args[1].get('Metadata', dict())
     song_info = build_track_data(dicta)
-    l.debug("Got song event, the status is: %s", status)
+    l.debug('Got song event, the status is: %s', status)
     play = status == 'Playing'
     was_playing = PLAYING.is_set()
     if play:
         PLAYING.set()
     else:
         PLAYING.clear()
+        l.info('Got pause event, waiting.')
         return
     with CURR_SONG_LOCK:
         global CURR_SONG
@@ -64,16 +66,23 @@ def song_event_handler(*args, **kwargs: dict):
             if CURR_SONG is not None:
                 CURR_SONG.flush()
                 CURR_SONG = None
-            l.info('Advertisement, skipping.')
+                l.info('Advertisement, ignoring.')
             return
+        # if there were a song
         if CURR_SONG is not None:
-            if play and not was_playing and \
-                    song_info.title == CURR_SONG.info.title:
-                l.info('Resuming!')
-                return
+            # If the same song
+            if song_info.title == CURR_SONG.info.title:
+                if play and not was_playing:
+                    # Just resuming a song should not flush
+                    l.info('Resuming the recording!')
+                    return
+                if CURR_SONG.duration > 5:
+                    # Probaly something like adding the song
+                    # Not the initial succesive 2-3 events of loading
+                    return
             CURR_SONG.flush()
-            if CURR_SONG.info.title != song_info.title:
-                l.info('Started recording %s by %s',
-                       song_info.title, song_info.artist[0])
+        if CURR_SONG is None or CURR_SONG.info.title != song_info.title:
+            l.info('Started recording %s by %s',
+                   song_info.title, song_info.artist[0])
         song = Song(song_info)
         CURR_SONG = song
