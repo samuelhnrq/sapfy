@@ -1,0 +1,8 @@
+JACK-Client
+mutagen
+musicbrainzngs
+behave
+pysoundfile
+pygobject
+numpy
+dbus-python
