@@ -1,29 +1,26 @@
 # pylint: disable=C0413,W0603,C0111,W1202
 """Receiver related functionality."""
 import logging as l
+import logging.handlers as lh
 import signal
-import dbus.service
-import dbus.glib
-import dbus
+import queue
+from os import environ
+from threading import Thread
 import numpy as _  # For the sideeffects
-import gi
-gi.require_version("GLib", "2.0")
-from gi.repository import GLib as gobject
-from . import song_event_handler, finish_jack
+from . import song_event_handler, finish_jack, song_event_thread
 from .jack_client import J_CLIENT, MUSIC_L, MUSIC_R
 from .flags import OPTIONS as options
+from .mpris_dbus import LOOP, SPOTIFY_OBJECT
 
-
-LOOP = gobject.MainLoop()
+EVENTS_THREAD = Thread(name='Events', target=song_event_thread)
 
 
 def ending(*_):
-    print()
-    l.info("Got interrupt, exiting gracefully.")
     LOOP.quit()
     J_CLIENT.deactivate()
     J_CLIENT.close()
     finish_jack()
+    LOG_LISTENER.stop()
     l.shutdown()
 
 
@@ -33,30 +30,32 @@ def setup_logging():
 
     file_formatter = l.Formatter(
         "%(asctime)s [%(threadName)-10.10s] [%(levelname)-5.5s]: %(message)s")
-
-    file_handler = l.FileHandler('sapfy.log')
+    file_handler = l.FileHandler(environ['HOME'] + '/.sapfy.log')
     file_handler.setFormatter(file_formatter)
-    root_logger.addHandler(file_handler)
-    root_logger.info('{0} STARTING UP! {0}'.format('-' * 12))
 
     log_formatter = l.Formatter(
         "%(asctime)s [%(levelname)-5.5s]: %(message)s",
         datefmt='%H:%M:%S')
     console_handler = l.StreamHandler()
     console_handler.setFormatter(log_formatter)
-    root_logger.addHandler(console_handler)
+
+    log_queue = queue.Queue(-1)
+    queue_handler = lh.QueueHandler(log_queue)
+    queue_listner = lh.QueueListener(
+        log_queue, console_handler, file_handler)
+    root_logger.addHandler(queue_handler)
+    queue_listner.start()
+    return queue_listner
+
+
+LOG_LISTENER = setup_logging()
 
 
 def main():
-    setup_logging()
-    s_bus = dbus.SessionBus()
-    s_bus.add_signal_receiver(
-        song_event_handler,
-        interface_keyword='dbus_interface',
-        dbus_interface='org.freedesktop.DBus.Properties',
-        signal_name='PropertiesChanged',
-        member_keyword='member')
     signal.signal(signal.SIGTERM, ending)
+    SPOTIFY_OBJECT.connect_to_signal(
+        'PropertiesChanged', song_event_handler,
+        'org.freedesktop.DBus.Properties')
     l.info("Now listening to dbus media events.")
     sinks = J_CLIENT.get_ports('spotify*')
     try:
@@ -65,6 +64,12 @@ def main():
         MUSIC_R.connect(sinks[1])
         LOOP.run()
     except KeyboardInterrupt:
+        print()
+        l.info("Got interrupt, exiting gracefully.")
+    except IndexError:
+        l.error("Couldn't find any jack source or port named spotify")
+        l.error('Have you created the jack -> pulse sink?')
+    finally:
         ending()
 
 
