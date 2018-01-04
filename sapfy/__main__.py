@@ -4,7 +4,7 @@ import logging as l
 import logging.handlers as lh
 import signal
 import queue
-from os import environ
+from os import environ, path, makedirs
 from threading import Thread
 import numpy as _  # For the sideeffects
 from . import song_event_handler, finish_jack, song_event_thread
@@ -30,7 +30,7 @@ def setup_logging():
 
     file_formatter = l.Formatter(
         "%(asctime)s [%(threadName)-10.10s] [%(levelname)-5.5s]: %(message)s")
-    file_handler = l.FileHandler(environ['HOME'] + '/.sapfy.log')
+    file_handler = l.FileHandler(environ.get('HOME', '.') + '/.sapfy.log')
     file_handler.setFormatter(file_formatter)
 
     log_formatter = l.Formatter(
@@ -41,17 +41,20 @@ def setup_logging():
 
     log_queue = queue.Queue(-1)
     queue_handler = lh.QueueHandler(log_queue)
-    queue_listner = lh.QueueListener(
-        log_queue, console_handler, file_handler)
+    queue_listener = lh.QueueListener(log_queue, console_handler, file_handler)
     root_logger.addHandler(queue_handler)
-    queue_listner.start()
-    return queue_listner
+    queue_listener.start()
+    return queue_listener
 
 
 LOG_LISTENER = setup_logging()
 
 
 def main():
+    folder = options.target
+    if not path.exists(folder):
+        makedirs(folder, mode=0o755)
+
     signal.signal(signal.SIGTERM, ending)
     SPOTIFY_OBJECT.connect_to_signal(
         'PropertiesChanged', song_event_handler,
@@ -67,6 +70,8 @@ def main():
         print()
         l.info("Got interrupt, exiting gracefully.")
     except IndexError:
+        # I could've null checked the array to see if it weren't empty
+        # but I do want it to blow up if it doesn't find a sink.
         l.error("Couldn't find any jack source or port named spotify")
         l.error('Have you created the jack -> pulse sink?')
     finally:

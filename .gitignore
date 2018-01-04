@@ -3,3 +3,4 @@ env/
 *.flac
 __pycache__/
 *.log
+out/

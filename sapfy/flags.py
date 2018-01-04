@@ -5,7 +5,7 @@ import soundfile as sf
 
 PARSER = flag.ArgumentParser(
     prog='sapfy',
-    description='Spotify daemon intended to sap spotify\'s songs as they play.'
+    description="Spotify daemon intended to sap spotify's songs as they play."
 )
 
 PARSER.add_argument(

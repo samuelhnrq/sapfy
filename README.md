@@ -6,7 +6,7 @@ it and forget it' possible, and will slowly sap all the songs you hear into
 your local disk, until one day, you won't need spotify anymore.
 
 ## Features
-- **We support both spotfy free and premium** - The only difference is that the
+- **We support both spotify free and premium** - The only difference is that the
     bitrate on spotify free (128kbps VBR) is lower than spotify premium. See
     the next point.
 - **Ignores advertisements automatically** - Even in spotify free we wont
@@ -19,6 +19,8 @@ your local disk, until one day, you won't need spotify anymore.
     the actual physical output.
 - **Supports pauses** - You can pause and resume whenever, the final song will
     be intact, no silence, as if it were never paused
+- **We can detect corrupted/wrongly recorded/incomplete tracks** - And even 
+    delete them if you want.
 
 
 ## Installation
@@ -31,7 +33,7 @@ how to get it working:
 - An exclusive/dedicated jack sink named spotify, on my system I created a 
     pulse-jack sink to represent spotify since on linux spotify outputs to 
     pulseaudio e.g.:
-    - On linux it needs an Alsa -> Pulse -> Jack (Plugin) bridged setup. This is mostly because spotify only supports pulseaudio, and this is the only way you are able to create a dedicated output and not to mix spotify output with the rest of the computer sounds. Arch wiki has a good [tutorial](https://wiki.archlinux.org/index.php/PulseAudio/Examples#PulseAudio_through_JACK) on how to setup the two to work together. E.g.:
+    - On linux it needs an ALSA -> Pulse -> Jack (Plugin) bridged setup. This is mostly because spotify only supports pulseaudio, and this is the only way you are able to create a dedicated output and not to mix spotify output with the rest of the computer sounds. Arch wiki has a good [tutorial](https://wiki.archlinux.org/index.php/PulseAudio/Examples#PulseAudio_through_JACK) on how to setup the two to work together. E.g.:
     - `pactl load-module module-jack-sink client_name=spotify connect=yes`
 - Redirect spotify's (only spotify's) output to the newly created, exclusive
     jack source
@@ -43,7 +45,7 @@ The required dependency are all on requirements.txt you can use pip to install t
 
 ```bash
 git clone https://github.com/samosaara/sapfy ~/.sapfy
-pip install --user -r Requirements.txt 
+pip install --user -r ~/.sapfy/Requirements.txt 
 mkdir -p  ~/.local/bin/
 ln -s $HOME/.sapfy/sapfyd ~/.local/bin/sapfy
 ```
@@ -69,7 +71,7 @@ The --output flag receives a string, that will be formatted with the song's curr
 | albumArtist | String List | String with the name of the artist behind the track's album. |
 | autoRating | Float | Number from 0 to 5 indicating spotify's grade. |
 | discNumber | Integer | Which of the album's disc(s) is the track at.  |
-| lenght | Integer | Number of seconds this track has. |
+| length | Integer | Number of seconds this track has. |
 
 For an example, the default output string is
 
