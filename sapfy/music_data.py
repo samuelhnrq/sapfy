@@ -34,7 +34,10 @@ class Song:
     the recipient file for the song"""
 
     # TODO XRun counter
-    def __init__(self, info, out_format='FLAC', target_folder='./',
+    def __init__(self,
+                 info,
+                 out_format='FLAC',
+                 target_folder='./',
                  file_path='{albumArtist[0]}/{album}/{trackNumber} {title}'):
         self.info: SongInfo = build_track_data(info) \
             if not isinstance(info, SongInfo) else info
@@ -78,8 +81,8 @@ class Song:
         if self.sound_file.closed:
             return False
         self.sound_file.close()
-        l.info("Flushed %s to disk successfully",
-               path.basename(self.file_name))
+        l.info("Flushed %s to disk successfully", path.basename(
+            self.file_name))
         # Do warn the user, regardless if strict or not.
         if not within_diff(self.duration, self.info.length, 4):
             l.warning('Actual song length was %d secs when metadata said it'
@@ -104,8 +107,10 @@ class Song:
 
 
 def build_track_data(dbus_dict: dict) -> SongInfo:
-    filtered = {str(k)[6:]: map_dubs_type(v)
-                for (k, v) in dbus_dict.items() if 'xesam:' in k}
+    filtered = {
+        str(k)[6:]: map_dubs_type(v)
+        for (k, v) in dbus_dict.items() if 'xesam:' in k
+    }
     filtered['autoRating'] = 5 * filtered.get('autoRating', 0)
     filtered.pop('url', '')
     filtered['length'] = dbus_dict.get('mpris:length', 0) / 1000000

@@ -1,5 +1,5 @@
 # pylint: disable=W0603
-import logging as l
+from .logger import LOGGER as l
 import wave as wav
 import time
 from collections import deque
@@ -23,7 +23,6 @@ TIMER_LOCK = RLock()
 LAST_EVENT = time.monotonic()
 
 
-@J_CLIENT.set_process_callback
 def process(frames):
     """This method is continuosly called every cycle within the JACK thread
     where I can access the buffers, must be realtime"""
@@ -39,11 +38,15 @@ def process(frames):
     SONG_LOCK.release()
 
 
-@J_CLIENT.set_xrun_callback
 def got_xrun(duration):
     if SONG is None:
         return
     SONG.got_xrun(duration)
+
+
+if (not opt.ads_only):
+    J_CLIENT.set_process_callback(process)
+    J_CLIENT.set_xrun_callback(got_xrun)
 
 
 def finish_jack():
@@ -89,10 +92,13 @@ def song_event_thread(dicta):
                 # This is just gross. Spotify shouldn't send events beforehand
             SONG_LOCK.acquire()
             SONG.flush(opt.strict_length)
-        song = Song(song_info, out_format=opt.format, file_path=opt.output,
-                    target_folder=opt.target)
-        l.info('Started recording %s by %s',
-               song_info.title, song_info.artist[0])
+        song = Song(
+            song_info,
+            out_format=opt.format,
+            file_path=opt.output,
+            target_folder=opt.target)
+        l.info('Started recording %s by %s', song_info.title,
+               song_info.artist[0])
         SONG = song
     finally:
         SONG_LOCK.release()
