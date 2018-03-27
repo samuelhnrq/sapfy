@@ -1,9 +1,13 @@
 # sapfy
-A daemon intended to sap spotify songs into your local library slowly
+A python 3.6+ script intended to be run as a daemon used to sap spotify songs into your local library, slowly
 freeing you from the proprietary hinges. The idea here is not to crack spotify
 protection algorithm or anything is just a daemon intended to be the most 'set
 it and forget it' possible, and will slowly sap all the songs you hear into
 your local disk, until one day, you won't need spotify anymore.
+
+But if you don't wan't to be bothered with the moral aspect, don't have enough
+local storage space, or don't care, you still can use the ad-skipping functionally
+stand-alone with the `-a` flag.
 
 ## Features
 - **We support both spotify free and premium** - The only difference is that the
@@ -11,25 +15,24 @@ your local disk, until one day, you won't need spotify anymore.
     the next point.
 - **Ignores advertisements automatically** - Even in spotify free we wont
     record advertisement to clutter your library. We will even try to skip them,
-    since spotify is allowing some ads to be skipped.
-- **JACK audio server** - the sky is the limit here, sapfy got the
+    since spotify is allowing some ads to be skipped. And you can choose to do only
+    this too, freedom also in choice.
+- **JACK audio server** - The sky is the limit here, sapfy got the
     left and right ends connected, to whatever source of audio, you do you,
     have fun. Personally I left spotify permanently playing in the background,
     whether I want to listen to music or not I just (un)plug spotify's outputs to 
     the actual physical output.
 - **Supports pauses** - You can pause and resume whenever, the final song will
-    be intact, no silence, as if it were never paused
-- **We can detect corrupted/wrongly recorded/incomplete tracks** - And even 
-    delete them if you want.
+    be intact, no silence, as if it were never paused.
+- **We can detect incomplete tracks** - And even delete them if you want.
 
 
 ## Installation
-So far, it's a extremely simple proof of concept and assumes a lot of things about your
-sound setup, I intend to make it more seamless to more setups, but here is
-how to get it working:
+The song recording part it's a extremely simple proof of concept and assumes a lot 
+of things about your sound setup, I intend to make it more seamless to more setups, 
+but here is what you need to get it working:
 
-- Python 3.6
-- A running jack audio server. Mainly for the 'connecting' ability that allows us to isolate spotify's output. There is no *real* need for all that real-time kernels, limits, etc. 
+- A running jack audio server. Mainly for the 'connecting' ability that allows us to isolate spotify's output. There is no *real* need for all that real-time kernels, limits, etc.  
 - An exclusive/dedicated jack sink named spotify, on my system I created a 
     pulse-jack sink to represent spotify since on linux spotify outputs to 
     pulseaudio e.g.:
@@ -49,15 +52,21 @@ pip install --user -r ~/.sapfy/Requirements.txt
 mkdir -p  ~/.local/bin/
 ln -s $HOME/.sapfy/sapfyd ~/.local/bin/sapfy
 ```
-There is now an executable symbolic link to named sapfy inside your `~/.local/bin` that you can use to execute the daemon. That folder might not be on your `PATH`, you may move the executable, or see [here](https://unix.stackexchange.com/a/26059/230047).
+
+There should be an executable symbolic link to named sapfy inside your `~/.local/bin` that you can use to execute the daemon. That folder might not be on your `PATH`, you may move the executable, or see [here](https://unix.stackexchange.com/a/26059/230047).
+
+If you want you can also setup a service in your init system to get the ultimate
+seamless sapping experience. I pretend on providing this on the future.
 
 ## Usage
 
-The way I structured the imports, you need to run the program as a python module if want to run it directly through python
+The way I structured the imports, you need to run the program as a python module if want to run it directly through python. Or you can just run the provided executable `sapfyd`.
 ```bash
-python3 -m sapfy 
+python3 -m sapfy
+# Is the same as
+./sapfyd
 ```
-You can use --help to see the available command line options.
+You can use --help to see the available command line options. 
 
 ### The output string
 The --output flag receives a string, that will be formatted with the song's current metadata. It must not have the file extension, it will be added automatically. The output string can have the following place-holders that will be replaced based on the track metadata:
