@@ -67,6 +67,7 @@ def song_event_thread(dicta):
                 SONG.flush()
                 SONG = None
             l.info('Advertisement, ignoring. Will try to skip it.')
+            time.sleep(.5)
             SPOTIFY_INTERFACE.Next()
             return
         song_info = build_track_data(dicta)
@@ -122,9 +123,10 @@ def song_event_handler(*args, **kwargs):
 
     if status == 'Playing':
         PLAYING.set()
+        l.debug('Got play event enabling.')
     else:
         PLAYING.clear()
-        l.info('Got pause event, waiting.')
+        l.debug('Got pause event, waiting.')
         event_done()
         return
 
